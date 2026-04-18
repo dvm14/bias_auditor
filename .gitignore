@@ -14,10 +14,10 @@ ENV/
 .bavenv
 
 # Data & models
-data/raw/
+data/raw/*
 data/processed/embeddings/
 data/processed/features/
-models/
+models/*
 *.npy
 *.pt
 *.pkl
