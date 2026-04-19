@@ -1,3 +1,4 @@
+# This work was done with the help of Claude (https://claude.ai/share/8c1843e5-e882-409c-aae5-b0a144a43d20)
 """
 Train all three auditor tiers for each embedding source and each demographic label.
 

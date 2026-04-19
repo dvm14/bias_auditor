@@ -16,10 +16,8 @@ ENV/
 # Data & models
 data/raw/*
 data/processed/embeddings/
-data/processed/features/
-models/*
 *.npy
-*.pt
+#*.pt
 *.pkl
 *.pth
 
