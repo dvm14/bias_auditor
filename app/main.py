@@ -8,27 +8,27 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, JSONResponse
 
-BASE_DIR = Path(__file__).parent
+BASE_DIR   = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
+TEMPLATE   = BASE_DIR / "templates" / "index.html"
 
 app = FastAPI(title="unBiasFace")
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-# Load app data once at startup
 with open(STATIC_DIR / "app_data.json") as f:
     APP_DATA = json.load(f)
+
+with open(TEMPLATE) as f:
+    HTML = f.read()
 
 
 @app.get("/", response_class=HTMLResponse)
 def index():
-    with open(BASE_DIR / "templates" / "index.html") as f:
-        return f.read()
+    return HTML
 
 
 @app.get("/api/data")
 def get_data():
-    """Return full app data (structure only, no images) for the frontend."""
-    # Return structure without images for initial load
     structure = {
         "tasks": {},
         "task_descriptions": APP_DATA["task_descriptions"],
@@ -49,9 +49,7 @@ def get_data():
 
 @app.get("/api/images/{task}/{axis}/{subgroup_val}")
 def get_images(task: str, axis: str, subgroup_val: str):
-    """Return images for a specific task/axis/subgroup combination."""
     try:
-        # Keys are stored as strings in the JSON
         images = APP_DATA["tasks"][task]["axes"][axis]["subgroups"][str(subgroup_val)]["images"]
         return JSONResponse({"images": images})
     except KeyError:
