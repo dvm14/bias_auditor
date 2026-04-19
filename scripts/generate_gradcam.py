@@ -48,10 +48,20 @@ SCAN_LIMIT  = 500
 
 LABEL_NAMES = {
     "gender": {0: "Female", 1: "Male"},
-    "race":   {0: "White", 1: "Black", 2: "Latino", 3: "E.Asian",
-               4: "SE.Asian", 5: "Indian", 6: "M.Eastern"},
-    "age":    {0: "0-2", 1: "3-9", 2: "10-19", 3: "20-29",
-               4: "30-39", 5: "40-49", 6: "50-59", 7: "60-69", 8: "70+"},
+    "race": {
+        0: "East Asian",
+        1: "Indian",
+        2: "Black",
+        3: "White",
+        4: "Middle Eastern",
+        5: "Latino",
+        6: "Southeast Asian",
+    },
+    "age": {
+        0: "0-2", 1: "3-9", 2: "10-19", 3: "20-29",
+        4: "30-39", 5: "40-49", 6: "50-59",
+        7: "60-69", 8: "70+",
+    },
 }
 
 LABEL_DATASET = {
