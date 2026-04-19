@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>unBiasFace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ── Design tokens ───────────────────────────────────────────── */
+  :root {
+    --navy:       #033F63;
+    --teal-dark:  #28666E;
+    --teal-mid:   #7C9885;
+    --sage:       #B5B682;
+    --peach:      #FEDC97;
+    --white:      #FAFAF7;
+    --text:       #1a1a1a;
+    --text-muted: #5a5a5a;
+    --border:     rgba(3,63,99,0.12);
+    --radius:     14px;
+    --radius-sm:  8px;
+    --serif:      'DM Serif Display', Georgia, serif;
+    --sans:       'DM Sans', system-ui, sans-serif;
+    --transition: 0.22s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  /* ── Reset ───────────────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: var(--sans);
+    background: var(--white);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Header ──────────────────────────────────────────────────── */
+  header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 40px;
+    height: 64px;
+    background: rgba(250,250,247,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    font-family: var(--serif);
+    font-size: 22px;
+    color: var(--navy);
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--teal-dark); font-style: italic; }
+
+  .header-tag {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* ── Stepper ─────────────────────────────────────────────────── */
+  .stepper {
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+
+  .step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: default;
+  }
+
+  .step-circle {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    transition: var(--transition);
+    flex-shrink: 0;
+  }
+
+  .step-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    white-space: nowrap;
+    transition: var(--transition);
+  }
+
+  .step-line {
+    width: 32px;
+    height: 1px;
+    background: var(--border);
+    margin: 0 4px;
+    flex-shrink: 0;
+  }
+
+  .step.active .step-circle {
+    background: var(--navy);
+    border-color: var(--navy);
+    color: white;
+  }
+  .step.active .step-label { color: var(--navy); font-weight: 600; }
+
+  .step.done .step-circle {
+    background: var(--teal-dark);
+    border-color: var(--teal-dark);
+    color: white;
+  }
+  .step.done .step-circle::after { content: '✓'; font-size: 11px; }
+  .step.done .step-circle span { display: none; }
+  .step.done .step-label { color: var(--teal-dark); }
+
+  /* ── Main layout ─────────────────────────────────────────────── */
+  main {
+    padding-top: 64px;
+    min-height: 100vh;
+  }
+
+  .screen {
+    display: none;
+    min-height: calc(100vh - 64px);
+    animation: fadeIn 0.35s ease;
+  }
+  .screen.active { display: flex; flex-direction: column; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Hero section (step 1) ───────────────────────────────────── */
+  .hero {
+    padding: 80px 40px 40px;
+    max-width: 900px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .hero-eyebrow {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--teal-dark);
+    margin-bottom: 16px;
+  }
+
+  .hero-title {
+    font-family: var(--serif);
+    font-size: clamp(36px, 5vw, 56px);
+    line-height: 1.1;
+    color: var(--navy);
+    margin-bottom: 20px;
+    max-width: 640px;
+  }
+
+  .hero-title em {
+    font-style: italic;
+    color: var(--teal-dark);
+  }
+
+  .hero-sub {
+    font-size: 16px;
+    line-height: 1.7;
+    color: var(--text-muted);
+    max-width: 520px;
+    margin-bottom: 56px;
+  }
+
+  .step-prompt {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+  }
+
+  /* ── Task tiles ──────────────────────────────────────────────── */
+  .task-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 40px 60px;
+  }
+
+  .task-tile {
+    position: relative;
+    padding: 32px 28px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    background: white;
+    transition: var(--transition);
+    overflow: hidden;
+  }
+
+  .task-tile::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--navy);
+    opacity: 0;
+    transition: var(--transition);
+    border-radius: calc(var(--radius) - 1px);
+  }
+
+  .task-tile:hover { border-color: var(--navy); transform: translateY(-2px); }
+  .task-tile:hover::before { opacity: 0.03; }
+  .task-tile:hover .task-tile-arrow { opacity: 1; transform: translateX(0); }
+
+  .task-tile-icon {
+    font-size: 32px;
+    margin-bottom: 16px;
+    display: block;
+    position: relative;
+    z-index: 1;
+  }
+
+  .task-tile-label {
+    font-family: var(--serif);
+    font-size: 24px;
+    color: var(--navy);
+    margin-bottom: 8px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .task-tile-desc {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-muted);
+    position: relative;
+    z-index: 1;
+  }
+
+  .task-tile-accent {
+    position: absolute;
+    bottom: 0; right: 0;
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    opacity: 0.08;
+    transform: translate(30px, 30px);
+  }
+
+  .task-tile-arrow {
+    position: absolute;
+    top: 28px; right: 28px;
+    font-size: 18px;
+    color: var(--navy);
+    opacity: 0;
+    transform: translateX(-6px);
+    transition: var(--transition);
+  }
+
+  /* ── Step 2 layout ───────────────────────────────────────────── */
+  .step2-container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 64px 40px;
+    width: 100%;
+  }
+
+  .step2-title {
+    font-family: var(--serif);
+    font-size: 36px;
+    color: var(--navy);
+    margin-bottom: 8px;
+  }
+
+  .step2-sub {
+    font-size: 15px;
+    color: var(--text-muted);
+    margin-bottom: 48px;
+    line-height: 1.6;
+  }
+
+  .selection-group {
+    margin-bottom: 36px;
+  }
+
+  .selection-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  .pill-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .pill {
+    padding: 10px 20px;
+    border: 1.5px solid var(--border);
+    border-radius: 100px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    background: white;
+    transition: var(--transition);
+    user-select: none;
+  }
+
+  .pill:hover { border-color: var(--teal-dark); color: var(--teal-dark); }
+
+  .pill.selected {
+    background: var(--navy);
+    border-color: var(--navy);
+    color: white;
+  }
+
+  .select-dropdown {
+    width: 100%;
+    padding: 14px 18px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: var(--sans);
+    font-size: 15px;
+    color: var(--text);
+    background: white;
+    appearance: none;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235a5a5a' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    padding-right: 48px;
+    transition: var(--transition);
+  }
+
+  .select-dropdown:focus {
+    outline: none;
+    border-color: var(--navy);
+  }
+
+  .cta-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 36px;
+    background: var(--navy);
+    color: white;
+    border: none;
+    border-radius: 100px;
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    margin-top: 16px;
+  }
+
+  .cta-btn:hover { background: var(--teal-dark); transform: translateY(-1px); }
+  .cta-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 0;
+    background: none;
+    border: none;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    margin-bottom: 32px;
+    transition: var(--transition);
+  }
+  .back-btn:hover { color: var(--navy); }
+
+  /* ── Step 3 results ──────────────────────────────────────────── */
+  .results-container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 48px 40px 80px;
+    width: 100%;
+  }
+
+  .results-header {
+    margin-bottom: 40px;
+  }
+
+  .results-crumb {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--teal-dark);
+    margin-bottom: 12px;
+  }
+
+  .results-title {
+    font-family: var(--serif);
+    font-size: clamp(28px, 4vw, 42px);
+    color: var(--navy);
+    margin-bottom: 8px;
+    line-height: 1.15;
+  }
+
+  .results-sub {
+    font-size: 15px;
+    color: var(--text-muted);
+    max-width: 600px;
+    line-height: 1.6;
+  }
+
+  /* ── Metrics bar ─────────────────────────────────────────────── */
+  .metrics-section {
+    margin-bottom: 48px;
+  }
+
+  .metrics-section-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .metric-item {
+    background: white;
+    padding: 24px 20px;
+    position: relative;
+  }
+
+  .metric-value {
+    font-family: var(--serif);
+    font-size: 32px;
+    color: var(--navy);
+    margin-bottom: 4px;
+    line-height: 1;
+  }
+
+  .metric-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+
+  .metric-explanation {
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--text-muted);
+  }
+
+  .metric-flag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .flag-warn { background: #fff3cd; color: #856404; }
+  .flag-ok   { background: #d1e7dd; color: #0a3622; }
+
+  /* ── Image feed ──────────────────────────────────────────────── */
+  .feed-section-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+
+  .feed-wrapper {
+    position: relative;
+  }
+
+  .feed-scroll {
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    padding-bottom: 16px;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: thin;
+    scrollbar-color: var(--sage) transparent;
+  }
+
+  .feed-scroll::-webkit-scrollbar { height: 4px; }
+  .feed-scroll::-webkit-scrollbar-track { background: transparent; }
+  .feed-scroll::-webkit-scrollbar-thumb { background: var(--sage); border-radius: 4px; }
+
+  .feed-nav {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+    justify-content: flex-end;
+  }
+
+  .feed-nav-btn {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: var(--navy);
+    transition: var(--transition);
+  }
+  .feed-nav-btn:hover { background: var(--navy); color: white; border-color: var(--navy); }
+
+  /* ── Image card ──────────────────────────────────────────────── */
+  .img-card {
+    flex: 0 0 320px;
+    scroll-snap-align: start;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: white;
+    overflow: hidden;
+    transition: var(--transition);
+  }
+
+  .img-card:hover { box-shadow: 0 8px 32px rgba(3,63,99,0.1); transform: translateY(-2px); }
+
+  .img-card-visuals {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    background: var(--border);
+    height: 200px;
+  }
+
+  .img-card-visual {
+    position: relative;
+    overflow: hidden;
+    background: #f0f0f0;
+  }
+
+  .img-card-visual img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .img-card-visual-label {
+    position: absolute;
+    bottom: 6px; left: 6px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    background: rgba(0,0,0,0.65);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+
+  .img-card-body {
+    padding: 16px;
+  }
+
+  .img-card-true {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+
+  .predictions-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .pred-chip {
+    flex: 1;
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+  }
+
+  .pred-chip-source {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+  }
+
+  .pred-chip-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .pred-chip-conf {
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  .pred-chip.correct { border-color: #a8d5b5; background: #f0faf3; }
+  .pred-chip.wrong   { border-color: #f5c6c6; background: #fdf3f3; }
+  .pred-chip.correct .pred-chip-source { color: #1a7a3c; }
+  .pred-chip.wrong   .pred-chip-source { color: #9b2c2c; }
+
+  .img-card-explanation {
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border);
+    padding-top: 10px;
+  }
+
+  /* ── Loading state ───────────────────────────────────────────── */
+  .loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px;
+    gap: 16px;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+
+  .spinner {
+    width: 32px; height: 32px;
+    border: 2px solid var(--border);
+    border-top-color: var(--navy);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Footer ──────────────────────────────────────────────────── */
+  footer {
+    padding: 24px 40px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  /* ── Responsive ──────────────────────────────────────────────── */
+  @media (max-width: 768px) {
+    header { padding: 0 20px; }
+    .hero { padding: 48px 20px 32px; }
+    .task-grid { grid-template-columns: 1fr; padding: 0 20px 40px; }
+    .step2-container { padding: 40px 20px; }
+    .results-container { padding: 32px 20px 60px; }
+    .metrics-grid { grid-template-columns: 1fr 1fr; }
+    .stepper .step-label { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<header>
+  <div class="logo">un<span>Bias</span>Face</div>
+
+  <div class="stepper" id="stepper">
+    <div class="step active" id="step-1">
+      <div class="step-circle"><span>1</span></div>
+      <div class="step-label">Choose task</div>
+    </div>
+    <div class="step-line"></div>
+    <div class="step" id="step-2">
+      <div class="step-circle"><span>2</span></div>
+      <div class="step-label">Choose subgroup</div>
+    </div>
+    <div class="step-line"></div>
+    <div class="step" id="step-3">
+      <div class="step-circle"><span>3</span></div>
+      <div class="step-label">Explore results</div>
+    </div>
+  </div>
+
+  <div class="header-tag">Bias Auditor</div>
+</header>
+
+<main>
+
+  <!-- ══ SCREEN 1: Choose task ══ -->
+  <div class="screen active" id="screen-1">
+    <div class="hero">
+      <div class="hero-eyebrow">Visual Embedding Bias Auditor</div>
+      <h1 class="hero-title">
+        What does a face <em>tell</em> an AI model?
+      </h1>
+      <p class="hero-sub">
+        CLIP and DeepFace encode demographic signals — gender, race, and age — 
+        in ways their creators never intended. Explore where they get it right, 
+        where they fail, and who pays the price.
+      </p>
+      <div class="step-prompt">Step 1 — What would you like to audit?</div>
+    </div>
+
+    <div class="task-grid" id="task-grid">
+      <div class="task-tile" data-task="gender">
+        <div class="task-tile-accent" style="background:var(--teal-dark)"></div>
+        <span class="task-tile-icon">⚧</span>
+        <div class="task-tile-label">Gender</div>
+        <p class="task-tile-desc">
+          See how accurately these models predict gender — and which groups 
+          are systematically misread.
+        </p>
+        <div class="task-tile-arrow">→</div>
+      </div>
+
+      <div class="task-tile" data-task="race">
+        <div class="task-tile-accent" style="background:var(--sage)"></div>
+        <span class="task-tile-icon">🌍</span>
+        <div class="task-tile-label">Race</div>
+        <p class="task-tile-desc">
+          Uncover how racial encoding varies wildly between CLIP and DeepFace, 
+          and where the models collapse.
+        </p>
+        <div class="task-tile-arrow">→</div>
+      </div>
+
+      <div class="task-tile" data-task="age">
+        <div class="task-tile-accent" style="background:var(--peach)"></div>
+        <span class="task-tile-icon">⏳</span>
+        <div class="task-tile-label">Age</div>
+        <p class="task-tile-desc">
+          Age is the hardest signal to read. See which age groups the models 
+          understand — and which they can't.
+        </p>
+        <div class="task-tile-arrow">→</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SCREEN 2: Choose subgroup ══ -->
+  <div class="screen" id="screen-2">
+    <div class="step2-container">
+      <button class="back-btn" id="back-to-1">← Back</button>
+      <h2 class="step2-title" id="s2-title">Auditing Gender</h2>
+      <p class="step2-sub" id="s2-sub">
+        Choose how you want to slice the data — then pick a specific subgroup 
+        to explore.
+      </p>
+
+      <div class="selection-group">
+        <span class="selection-label">Step 2a — Group results by</span>
+        <div class="pill-group" id="axis-pills"></div>
+      </div>
+
+      <div class="selection-group" id="subgroup-group" style="display:none">
+        <span class="selection-label">Step 2b — Select a specific group</span>
+        <select class="select-dropdown" id="subgroup-select">
+          <option value="">Choose a group...</option>
+        </select>
+      </div>
+
+      <button class="cta-btn" id="explore-btn" disabled>
+        Explore results →
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ SCREEN 3: Results ══ -->
+  <div class="screen" id="screen-3">
+    <div class="results-container">
+      <button class="back-btn" id="back-to-2">← Back</button>
+
+      <div class="results-header">
+        <div class="results-crumb" id="results-crumb"></div>
+        <h2 class="results-title" id="results-title"></h2>
+        <p class="results-sub" id="results-sub"></p>
+      </div>
+
+      <!-- Metrics -->
+      <div class="metrics-section">
+        <div class="metrics-section-label">How fair are the predictions?</div>
+        <div class="metrics-grid" id="metrics-grid">
+          <div class="loading"><div class="spinner"></div>Loading metrics…</div>
+        </div>
+      </div>
+
+      <!-- Feed -->
+      <div class="feed-section-label">Browse predictions — CLIP vs DeepFace</div>
+      <div class="feed-wrapper">
+        <div class="feed-scroll" id="feed-scroll">
+          <div class="loading"><div class="spinner"></div>Loading examples…</div>
+        </div>
+        <div class="feed-nav">
+          <button class="feed-nav-btn" id="feed-prev">←</button>
+          <button class="feed-nav-btn" id="feed-next">→</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <span>unBiasFace — Duke University AIPI540</span>
+  <span>Auditing CLIP ViT-L/14 &amp; DeepFace ArcFace</span>
+</footer>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+const state = {
+  appData: null,
+  task: null,
+  axis: null,
+  subgroupVal: null,
+};
+
+const AXIS_LABELS = {
+  race:   "Racial Group",
+  age:    "Age Group",
+  gender: "Gender",
+};
+
+// ── Boot ───────────────────────────────────────────────────────────────────
+async function boot() {
+  const res = await fetch("/api/data");
+  state.appData = await res.json();
+  bindEvents();
+}
+
+// ── Navigation ─────────────────────────────────────────────────────────────
+function showScreen(n) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById(`screen-${n}`).classList.add("active");
+  updateStepper(n);
+  window.scrollTo(0, 0);
+}
+
+function updateStepper(active) {
+  [1,2,3].forEach(i => {
+    const el = document.getElementById(`step-${i}`);
+    el.classList.remove("active", "done");
+    if (i < active)  el.classList.add("done");
+    if (i === active) el.classList.add("active");
+  });
+}
+
+// ── Events ─────────────────────────────────────────────────────────────────
+function bindEvents() {
+  // Task tiles
+  document.querySelectorAll(".task-tile").forEach(tile => {
+    tile.addEventListener("click", () => {
+      state.task = tile.dataset.task;
+      state.axis = null;
+      state.subgroupVal = null;
+      buildScreen2();
+      showScreen(2);
+    });
+  });
+
+  // Back buttons
+  document.getElementById("back-to-1").addEventListener("click", () => showScreen(1));
+  document.getElementById("back-to-2").addEventListener("click", () => showScreen(2));
+
+  // Explore button
+  document.getElementById("explore-btn").addEventListener("click", async () => {
+    if (!state.axis || !state.subgroupVal) return;
+    await buildScreen3();
+    showScreen(3);
+  });
+
+  // Feed nav
+  const scroll = document.getElementById("feed-scroll");
+  document.getElementById("feed-prev").addEventListener("click", () => {
+    scroll.scrollBy({ left: -340, behavior: "smooth" });
+  });
+  document.getElementById("feed-next").addEventListener("click", () => {
+    scroll.scrollBy({ left: 340, behavior: "smooth" });
+  });
+}
+
+// ── Screen 2 builder ───────────────────────────────────────────────────────
+function buildScreen2() {
+  const { appData, task } = state;
+  const taskDesc = appData.task_descriptions[task];
+  const axes = Object.keys(appData.tasks[task].axes);
+
+  document.getElementById("s2-title").textContent = `Auditing ${taskDesc}`;
+  document.getElementById("s2-sub").textContent =
+    `Choose how you want to slice the data, then pick a specific subgroup to explore.`;
+
+  // Axis pills
+  const pillGroup = document.getElementById("axis-pills");
+  pillGroup.innerHTML = "";
+  axes.forEach(axis => {
+    const pill = document.createElement("button");
+    pill.className = "pill";
+    pill.textContent = `By ${AXIS_LABELS[axis]}`;
+    pill.dataset.axis = axis;
+    pill.addEventListener("click", () => {
+      document.querySelectorAll(".pill").forEach(p => p.classList.remove("selected"));
+      pill.classList.add("selected");
+      state.axis = axis;
+      state.subgroupVal = null;
+      buildSubgroupSelect(axis);
+      document.getElementById("explore-btn").disabled = true;
+    });
+    pillGroup.appendChild(pill);
+  });
+
+  // Reset
+  document.getElementById("subgroup-group").style.display = "none";
+  document.getElementById("explore-btn").disabled = true;
+}
+
+function buildSubgroupSelect(axis) {
+  const { appData, task } = state;
+  const subgroups = appData.tasks[task].axes[axis].subgroups;
+  const select = document.getElementById("subgroup-select");
+
+  select.innerHTML = `<option value="">Choose a group...</option>`;
+  Object.entries(subgroups).forEach(([val, sg]) => {
+    const opt = document.createElement("option");
+    opt.value = val;
+    opt.textContent = sg.name;
+    select.appendChild(opt);
+  });
+
+  document.getElementById("subgroup-group").style.display = "block";
+
+  select.onchange = () => {
+    state.subgroupVal = select.value || null;
+    document.getElementById("explore-btn").disabled = !state.subgroupVal;
+  };
+}
+
+// ── Screen 3 builder ───────────────────────────────────────────────────────
+async function buildScreen3() {
+  const { appData, task, axis, subgroupVal } = state;
+  const sg = appData.tasks[task].axes[axis].subgroups[subgroupVal];
+  const taskDesc = appData.task_descriptions[task];
+  const axisDesc = appData.axis_descriptions[axis];
+
+  // Header
+  document.getElementById("results-crumb").textContent =
+    `${taskDesc} · ${axisDesc}`;
+  document.getElementById("results-title").textContent =
+    `Predicting ${taskDesc.toLowerCase()} for ${sg.name} faces`;
+  document.getElementById("results-sub").textContent =
+    `Comparing CLIP and DeepFace predictions on real faces from this subgroup. 
+     See where the models agree, where they clash, and where they fail.`;
+
+  // Metrics
+  buildMetrics(sg.metrics, sg.name);
+
+  // Images — fetch lazily
+  document.getElementById("feed-scroll").innerHTML =
+    `<div class="loading"><div class="spinner"></div>Loading examples…</div>`;
+
+  const res = await fetch(`/api/images/${task}/${axis}/${subgroupVal}`);
+  const data = await res.json();
+  buildFeed(data.images, sg.name);
+}
+
+function buildMetrics(metrics, subgroupName) {
+  const grid = document.getElementById("metrics-grid");
+  grid.innerHTML = "";
+
+  const dpVal = parseFloat(metrics.demographic_parity.value);
+  const isWarn = dpVal > 10;
+
+  Object.values(metrics).forEach((m, i) => {
+    const item = document.createElement("div");
+    item.className = "metric-item";
+
+    const flagHtml = i === 1
+      ? `<div class="metric-flag ${isWarn ? 'flag-warn' : 'flag-ok'}">
+           ${isWarn ? '⚠ Above 10% threshold' : '✓ Within threshold'}
+         </div>`
+      : "";
+
+    item.innerHTML = `
+      ${flagHtml}
+      <div class="metric-label">${m.label}</div>
+      <div class="metric-value">${m.value}</div>
+      <div class="metric-explanation">${m.explanation}</div>
+    `;
+    grid.appendChild(item);
+  });
+}
+
+function buildFeed(images, subgroupName) {
+  const scroll = document.getElementById("feed-scroll");
+  scroll.innerHTML = "";
+
+  if (!images || images.length === 0) {
+    scroll.innerHTML = `<div class="loading">No examples available for this combination.</div>`;
+    return;
+  }
+
+  images.forEach(img => {
+    const card = document.createElement("div");
+    card.className = "img-card";
+
+    const heatmapSrc = img.heatmap_b64
+      ? `data:image/jpeg;base64,${img.heatmap_b64}`
+      : `data:image/jpeg;base64,${img.image_b64}`;
+
+    card.innerHTML = `
+      <div class="img-card-visuals">
+        <div class="img-card-visual">
+          <img src="data:image/jpeg;base64,${img.image_b64}" alt="Face image" loading="lazy">
+          <div class="img-card-visual-label">Original</div>
+        </div>
+        <div class="img-card-visual">
+          <img src="${heatmapSrc}" alt="EigenCAM heatmap" loading="lazy">
+          <div class="img-card-visual-label">CLIP attention</div>
+        </div>
+      </div>
+      <div class="img-card-body">
+        <div class="img-card-true">True label: <strong>${img.true_label}</strong></div>
+        <div class="predictions-row">
+          <div class="pred-chip ${img.clip_correct ? 'correct' : 'wrong'}">
+            <div class="pred-chip-source">CLIP</div>
+            <div class="pred-chip-value">${img.clip_pred}</div>
+            <div class="pred-chip-conf">${img.clip_conf}% confidence</div>
+          </div>
+          <div class="pred-chip ${img.deepface_correct ? 'correct' : 'wrong'}">
+            <div class="pred-chip-source">DeepFace</div>
+            <div class="pred-chip-value">${img.deepface_pred}</div>
+            <div class="pred-chip-conf">${img.deepface_conf}% confidence</div>
+          </div>
+        </div>
+        <div class="img-card-explanation">${img.explanation}</div>
+      </div>
+    `;
+    scroll.appendChild(card);
+  });
+}
+
+// ── Start ──────────────────────────────────────────────────────────────────
+boot();
+</script>
+</body>
+</html>
