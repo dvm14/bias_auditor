@@ -334,8 +334,8 @@ def plain_english_metrics(
             "value": f"{dp_pct}%",
             "label": "Demographic Parity Gap",
             "explanation": (
-                f"The model's prediction rate for {subgroup_name} differs "
-                f"from other {axis_word}s by {dp_pct} percentage points. "
+                f"The model's {task_word} prediction rate varies by up to "
+                f"{dp_pct} percentage points across different {axis_word}s. "
                 f"A gap above 10% is considered a fairness warning."
             ),
         },
@@ -343,19 +343,18 @@ def plain_english_metrics(
             "value": f"{eo_pct}%",
             "label": "Equalized Odds Gap",
             "explanation": (
-                f"When the true label is {subgroup_name}, the model's "
-                f"error rate varies by {eo_pct} percentage points across "
-                f"different {axis_word}s. Lower is fairer."
+                f"When the true label is correct, the model's error rate "
+                f"varies by {eo_pct} percentage points across different "
+                f"{axis_word}s. Lower is fairer."
             ),
         },
         "equal_opportunity": {
             "value": f"{eop_pct}%",
             "label": "Equal Opportunity Gap",
             "explanation": (
-                f"The model is {eop_pct} percentage points more likely "
-                f"to miss a true {subgroup_name} face compared to the "
-                f"best-served group. This measures who the model "
-                f"underserves most."
+                f"The model is up to {eop_pct} percentage points more "
+                f"likely to miss a correct prediction for the worst-served "
+                f"{axis_word} compared to the best-served one."
             ),
         },
     }
